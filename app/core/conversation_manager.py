@@ -43,17 +43,51 @@ class ConversationManager:
         memory: ConversationMemory | None = None,
         faiss_tool: FaissTool | None = None,
     ):
-        self.catalog = catalog or Catalog()
-        self.llm = llm or get_llm_client()
-        self.memory = memory or ConversationMemory()
+        self.catalog = catalog
+        self.llm = llm
+        self.memory = memory
 
-        faiss_tool = faiss_tool or FaissTool(self.catalog)
-        self.tool_engine = ToolDecisionEngine(self.catalog, faiss_tool=faiss_tool)
-        self.planner = LLMPlanner(self.llm)
-        self.recommendation_agent = RecommendationAgent(self.catalog)
-        self.response_generator = ResponseGenerator(self.llm)
+        self.faiss_tool = faiss_tool    
+
+        self.tool_engine = None
+        self.planner = None
+        self.recommendation_agent = None
+        self.response_generator = None
+    def _initialize(self):
+
+        if self.catalog is None:
+            self.catalog = Catalog()
+
+        if self.llm is None:
+            self.llm = get_llm_client()
+
+        if self.memory is None:
+            self.memory = ConversationMemory()
+
+        if self.faiss_tool is None:
+            self.faiss_tool = FaissTool(self.catalog)
+
+        if self.tool_engine is None:
+            self.tool_engine = ToolDecisionEngine(
+                self.catalog,
+                faiss_tool=self.faiss_tool,
+            )
+
+        if self.planner is None:
+            self.planner = LLMPlanner(self.llm)
+
+        if self.recommendation_agent is None:
+            self.recommendation_agent = RecommendationAgent(
+                self.catalog
+            )
+
+        if self.response_generator is None:
+            self.response_generator = ResponseGenerator(
+                self.llm
+            )
 
     def handle_history(self, messages: list[dict[str, Any]]) -> TurnResult:
+        self._initialize()
         """Handle the assignment's stateless chat contract.
 
         The evaluator sends the full history on every call. We rebuild a
@@ -90,6 +124,7 @@ class ConversationManager:
         return self._handle_state_turn(state, str(last["content"]), persist=False)
 
     def handle_turn(self, session_id: str | None, user_message: str) -> TurnResult:
+        self._initialize()
         state = self.memory.get_or_create(session_id)
         return self._handle_state_turn(state, user_message, persist=True)
 

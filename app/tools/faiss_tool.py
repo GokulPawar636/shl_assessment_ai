@@ -34,18 +34,31 @@ class FaissTool:
         self.catalog = catalog
         self.cache_dir = cache_dir
         self.cache_dir.mkdir(parents=True, exist_ok=True)
+
         self._model = None
         self._index = None
-        self._id_order: list[str] = []
-        self._build_or_load()
+        self._id_order = []
 
-    # -- lazy heavy imports so importing this module doesn't require
-    #    sentence-transformers/faiss unless the tool is actually used --
+        # Don't build the model/index during startup
+        self._initialized = False
+
+    # ===========================
+    # ADD THIS METHOD HERE
+    # ===========================
+    def _initialize(self):
+        if self._initialized:
+            return
+
+        self._build_or_load()
+        self._initialized = True
+
+    # Existing method
     def _get_model(self):
         if self._model is None:
             from sentence_transformers import SentenceTransformer
 
             self._model = SentenceTransformer(EMBED_MODEL_NAME)
+
         return self._model
 
     def _cache_key(self) -> str:
@@ -81,6 +94,9 @@ class FaissTool:
             pickle.dump(payload, f)
 
     def run(self, query: str, top_k: int = 10, exclude_ids: set[str] | None = None) -> list[tuple[Product, float]]:
+
+        self._initialize()
+
         model = self._get_model()
         q_emb = model.encode([query], normalize_embeddings=True)
         q_emb = np.asarray(q_emb, dtype="float32")
