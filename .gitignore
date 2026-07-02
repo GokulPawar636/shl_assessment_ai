@@ -1,5 +1,18 @@
-.env.example
-venv/
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*.pyo
+
+# Virtual Environment
+venv/
+shlvenv/
+
+# Environment Variables
+.env.example 
+
+# Jupyter
+.ipynb_checkpoints/
+
+
+# Cache
 data/cache/
